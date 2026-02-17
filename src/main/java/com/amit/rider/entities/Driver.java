@@ -1,4 +1,4 @@
-package com.amit.rider.Entities;
+package com.amit.rider.entities;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

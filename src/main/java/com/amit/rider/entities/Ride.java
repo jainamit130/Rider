@@ -1,4 +1,4 @@
-package com.amit.rider.Entities;
+package com.amit.rider.entities;
 
 import jakarta.persistence.*;
 
@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class Ride {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long rideId;
     private Long passengerId;
     private Long driverId;

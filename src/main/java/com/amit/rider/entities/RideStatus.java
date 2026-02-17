@@ -1,4 +1,4 @@
-package com.amit.rider.Entities;
+package com.amit.rider.entities;
 
 public enum RideStatus {
     REQUESTED,

@@ -1,4 +1,4 @@
-package com.amit.rider.Entities;
+package com.amit.rider.entities;
 
 import jakarta.persistence.Entity;
 import lombok.Data;
@@ -8,4 +8,5 @@ import lombok.Data;
 public class Rider {
     private Long riderId;
     private Long rideId;
+    private String name;
 }
