@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rider — System Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #2a2a3a;
+    --accent: #00e5a0;
+    --accent2: #7c6fff;
+    --accent3: #ff6b6b;
+    --accent4: #ffc542;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --card: #16161f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo {
+    width: 48px; height: 48px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 20px;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 0.85rem; font-family: 'Space Mono', monospace; margin-top: 2px; }
+
+  /* Tab nav */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 32px;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    animation: fadeDown 0.6s 0.1s ease both;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); background: var(--border); }
+  .tab.active { background: var(--accent); color: #000; }
+
+  /* Panels */
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+
+  /* Architecture diagram */
+  .arch-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--card);
+  }
+
+  .layer-header {
+    padding: 10px 20px;
+    font-size: 0.7rem;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .layer-header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .layer-body {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .component {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 160px;
+    position: relative;
+  }
+
+  .component:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,229,160,0.1);
+  }
+
+  .component.highlight {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 1px var(--accent2);
+  }
+
+  .comp-icon { font-size: 1.4rem; margin-bottom: 6px; }
+  .comp-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+  .comp-tech {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    margin-top: 2px;
+  }
+  .comp-desc { font-size: 0.72rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-family: 'Space Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .badge-start { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .badge-sim { background: rgba(255,197,66,0.15); color: var(--accent4); }
+  .badge-rt { background: rgba(124,111,255,0.15); color: var(--accent2); }
+
+  /* Info drawer */
+  .info-drawer {
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--accent2);
+    border-radius: 12px;
+    padding: 20px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .info-drawer.open { display: block; }
+  .info-drawer h3 { font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .info-drawer p { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+  .info-drawer code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent4);
+  }
+
+  /* Stack panel */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .stack-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    transition: all 0.2s;
+  }
+  .stack-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .stack-cat {
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stack-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .stack-why { font-size: 0.75rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .stack-icon { font-size: 1.6rem; margin-bottom: 8px; }
+
+  /* Roadmap */
+  .roadmap { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: flex;
+    gap: 20px;
+    position: relative;
+  }
+  .phase:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 23px;
+    top: 48px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .phase-num {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    border: 2px solid;
+    position: relative;
+    z-index: 1;
+    background: var(--bg);
+  }
+  .phase-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    flex: 1;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .phase-content:hover { border-color: var(--accent); }
+  .phase-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+  .phase-sub { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; }
+  .phase-tasks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .task-chip {
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Sim panel */
+  .sim-section { margin-bottom: 24px; }
+  .sim-title { font-size: 1rem; font-weight: 700; color: var(--accent4); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .sim-body {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .sim-body p { font-size: 0.8rem; color: var(--muted); line-height: 1.7; margin-bottom: 10px; }
+  .sim-body p:last-child { margin-bottom: 0; }
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    line-height: 1.8;
+    margin-top: 10px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .cm { color: var(--muted); }
+  .code-block .kw { color: var(--accent2); }
+  .code-block .st { color: var(--accent4); }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .pulse {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 6px;
+    animation: pulseAnim 1.5s infinite;
+  }
+  @keyframes pulseAnim {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 1.2rem;
+    padding: 4px 0;
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 1.4rem; }
+    .layer-body { gap: 8px; }
+    .component { min-width: 140px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">R</div>
+    <div>
+      <h1><span>Rider</span> — System Architecture</h1>
+      <div class="subtitle">// Spring Boot · Uber Clone · Hobby Project Blueprint</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" onclick="switchTab('arch')">🗺 Architecture</button>
+    <button class="tab" onclick="switchTab('stack')">🛠 Tech Stack</button>
+    <button class="tab" onclick="switchTab('sim')">🤖 Driver Simulation</button>
+    <button class="tab" onclick="switchTab('roadmap')">🚦 Where to Start</button>
+  </nav>
+
+  <!-- ARCHITECTURE TAB -->
+  <div id="tab-arch" class="panel active">
+    <div class="arch-grid">
+
+      <!-- Client Layer -->
+      <div class="layer">
+        <div class="layer-header" style="background: rgba(0,229,160,0.06); color: var(--accent);">
+          <div class="dot" style="background:var(--accent)"></div>
+          Client Layer
+        </div>
+        <div class="layer-body">
+          <div class="component" onclick="showInfo('rider-app')">
+            <div class="comp-icon">📱</div>
+            <div class="comp-name">Rider Web App</div>
+            <div class="comp-tech">React / Vue / Thymeleaf</div>
+            <div class="comp-desc">Book rides, track driver on map in real-time</div>
+            <span class="badge badge-start">START HERE</span>
+          </div>
+          <div class="component" onclick="showInfo('driver-sim')">
+            <div class="comp-icon">🤖</div>
+            <div class="comp-name">Driver Simulator</div>
+            <div class="comp-tech">Python / Node.js script</div>
+            <div class="comp-desc">Spawns N fake drivers, moves them on a map automatically</div>
+            <span class="badge badge-sim">KEY TO DEMO</span>
+          </div>
+          <div class="component" onclick="showInfo('admin-dash')">
+            <div class="comp-icon">📊</div>
+            <div class="comp-name">Admin Dashboard</div>
+            <div class="comp-tech">Simple HTML or React</div>
+            <div class="comp-desc">Watch all drivers live — impressive to show off</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">↕ HTTP / WebSocket</div>
+
+      <!-- API Gateway / Spring Boot -->
+      <div class="layer">
+        <div class="layer-header" style="background: rgba(124,111,255,0.07); color: var(--accent2);">
+          <div class="dot" style="background:var(--accent2)"></div>
+          Spring Boot Backend (Core)
+        </div>
+        <div class="layer-body">
+          <div class="component" onclick="showInfo('auth')">
+            <div class="comp-icon">🔐</div>
+            <div class="comp-name">Auth Service</div>
+            <div class="comp-tech">Spring Security + JWT</div>
+            <div class="comp-desc">Register/Login for riders & drivers</div>
+          </div>
+          <div class="component" onclick="showInfo('ride')">
+            <div class="comp-icon">🚗</div>
+            <div class="comp-name">Ride Service</div>
+            <div class="comp-tech">REST API</div>
+            <div class="comp-desc">Request, accept, complete, cancel rides. Core business logic.</div>
+            <span class="badge badge-start">CORE</span>
+          </div>
+          <div class="component" onclick="showInfo('matching')">
+            <div class="comp-icon">🎯</div>
+            <div class="comp-name">Matching Engine</div>
+            <div class="comp-tech">Haversine / PostGIS</div>
+            <div class="comp-desc">Find nearest available driver to rider</div>
+          </div>
+          <div class="component" onclick="showInfo('location')">
+            <div class="comp-icon">📍</div>
+            <div class="comp-name">Location Service</div>
+            <div class="comp-tech">WebSocket + STOMP</div>
+            <div class="comp-desc">Receives driver GPS pings, broadcasts to rider</div>
+            <span class="badge badge-rt">REAL-TIME</span>
+          </div>
+          <div class="component" onclick="showInfo('notif')">
+            <div class="comp-icon">🔔</div>
+            <div class="comp-name">Notification Service</div>
+            <div class="comp-tech">SSE or WebSocket</div>
+            <div class="comp-desc">Push ride status updates to rider's browser</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">↕ TCP / STOMP / AMQP</div>
+
+      <!-- Infra Layer -->
+      <div class="layer">
+        <div class="layer-header" style="background: rgba(255,107,107,0.06); color: var(--accent3);">
+          <div class="dot" style="background:var(--accent3)"></div>
+          Infrastructure & Data
+        </div>
+        <div class="layer-body">
+          <div class="component" onclick="showInfo('postgres')">
+            <div class="comp-icon">🐘</div>
+            <div class="comp-name">PostgreSQL</div>
+            <div class="comp-tech">+ PostGIS extension</div>
+            <div class="comp-desc">Users, rides, history. Geo queries for matching.</div>
+          </div>
+          <div class="component" onclick="showInfo('redis')">
+            <div class="comp-icon">⚡</div>
+            <div class="comp-name">Redis</div>
+            <div class="comp-tech">In-memory store</div>
+            <div class="comp-desc">Live driver locations, sessions, rate-limiting</div>
+          </div>
+          <div class="component" onclick="showInfo('kafka')">
+            <div class="comp-icon">📨</div>
+            <div class="comp-name">Kafka <small style="color:var(--muted);font-size:0.65rem">(optional)</small></div>
+            <div class="comp-tech">Event streaming</div>
+            <div class="comp-desc">Decouple location updates from processing. Skip if simple.</div>
+          </div>
+          <div class="component" onclick="showInfo('maps')">
+            <div class="comp-icon">🗺</div>
+            <div class="comp-name">Maps API</div>
+            <div class="comp-tech">Leaflet.js + OpenStreetMap</div>
+            <div class="comp-desc">Free map rendering. Show driver markers moving live.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Drawer -->
+    <div class="info-drawer" id="info-drawer">
+      <h3 id="info-title"></h3>
+      <p id="info-body"></p>
+    </div>
+  </div>
+
+  <!-- TECH STACK TAB -->
+  <div id="tab-stack" class="panel">
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="stack-icon">☕</div>
+        <div class="stack-cat">Backend Framework</div>
+        <div class="stack-name">Spring Boot 3</div>
+        <div class="stack-why">You already chose this. Use Spring Web, Security, Data JPA, and WebSocket starters.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🐘</div>
+        <div class="stack-cat">Primary Database</div>
+        <div class="stack-name">PostgreSQL + PostGIS</div>
+        <div class="stack-why">PostGIS gives you native geo queries like "find driver within 5km" — essential for matching.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">⚡</div>
+        <div class="stack-cat">Cache / Live State</div>
+        <div class="stack-name">Redis</div>
+        <div class="stack-why">Store driver locations here (not DB) — reads are microsecond-fast and you can set TTL auto-expiry.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🔌</div>
+        <div class="stack-cat">Real-time</div>
+        <div class="stack-name">WebSocket + STOMP</div>
+        <div class="stack-why">Spring has first-class STOMP support. Drivers publish location, riders subscribe and see movement.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🗺</div>
+        <div class="stack-cat">Maps (Frontend)</div>
+        <div class="stack-name">Leaflet.js + OpenStreetMap</div>
+        <div class="stack-why">Completely free, no API key needed. Shows drivers as moving markers on a real map.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🐳</div>
+        <div class="stack-cat">Local Dev</div>
+        <div class="stack-name">Docker Compose</div>
+        <div class="stack-why">Run Postgres + Redis locally with one command. Clean dev environment, easy to demo.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🤖</div>
+        <div class="stack-cat">Driver Simulator</div>
+        <div class="stack-name">Python script</div>
+        <div class="stack-why">10 lines of Python can spin up 20 fake drivers that move and connect via WebSocket. See the Sim tab.</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🔐</div>
+        <div class="stack-cat">Auth</div>
+        <div class="stack-name">Spring Security + JWT</div>
+        <div class="stack-why">Stateless auth — easy to test, works well with a simulator that just sends a hardcoded token.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIMULATION TAB -->
+  <div id="tab-sim" class="panel">
+    <div class="sim-section">
+      <div class="sim-title">🤖 The Problem You Identified</div>
+      <div class="sim-body">
+        <p>You can't log in as 20 drivers manually to demo the app. The solution: a <strong style="color:var(--accent)">Driver Simulator</strong> — a script outside your Spring Boot app that pretends to be many drivers. It runs alongside your backend and makes it look like a real city full of drivers.</p>
+      </div>
+    </div>
+
+    <div class="sim-section">
+      <div class="sim-title">⚙️ How It Works</div>
+      <div class="sim-body">
+        <p><strong style="color:var(--text)">1. Pre-seed driver accounts</strong> in your database (e.g. driver001 to driver020) with pre-issued JWT tokens.</p>
+        <p><strong style="color:var(--text)">2. The simulator script</strong> runs in a loop — each fake driver connects to your WebSocket, sends its GPS coordinates every 2 seconds, and drifts around a city area randomly.</p>
+        <p><strong style="color:var(--text)">3. When a rider requests a ride</strong>, your backend assigns the nearest driver. The simulator detects it's been assigned and starts moving toward the pickup point.</p>
+        <p><strong style="color:var(--text)">4. The rider's map</strong> shows the driver marker moving in real-time — looks exactly like Uber.</p>
+      </div>
+    </div>
+
+    <div class="sim-section">
+      <div class="sim-title">🐍 Simulator Pseudocode (Python)</div>
+      <div class="sim-body">
+<div class="code-block"><span class="cm"># rider_simulator.py — run this alongside your Spring Boot app</span>
+<span class="kw">import</span> asyncio, websockets, json, random, math
+
+DRIVERS = [
+    {<span class="st">"id"</span>: <span class="st">"driver001"</span>, <span class="st">"token"</span>: <span class="st">"eyJh..."</span>, <span class="st">"lat"</span>: 28.6139, <span class="st">"lng"</span>: 77.2090},
+    <span class="cm"># ... add 10-20 drivers</span>
+]
+
+<span class="kw">async def</span> simulate_driver(driver):
+    uri = <span class="st">f"ws://localhost:8080/ws/driver/{driver['id']}"</span>
+    <span class="kw">async with</span> websockets.connect(uri, extra_headers={
+        <span class="st">"Authorization"</span>: <span class="st">f"Bearer {driver['token']}"</span>
+    }) <span class="kw">as</span> ws:
+        <span class="kw">while True</span>:
+            <span class="cm"># Drift location slightly each tick</span>
+            driver[<span class="st">"lat"</span>] += random.uniform(-0.0005, 0.0005)
+            driver[<span class="st">"lng"</span>] += random.uniform(-0.0005, 0.0005)
+            <span class="kw">await</span> ws.send(json.dumps({
+                <span class="st">"lat"</span>: driver[<span class="st">"lat"</span>], <span class="st">"lng"</span>: driver[<span class="st">"lng"</span>],
+                <span class="st">"status"</span>: <span class="st">"AVAILABLE"</span>
+            }))
+            <span class="kw">await</span> asyncio.sleep(2)
+
+asyncio.run(asyncio.gather(*[simulate_driver(d) <span class="kw">for</span> d <span class="kw">in</span> DRIVERS]))</div>
+      </div>
+    </div>
+
+    <div class="sim-section">
+      <div class="sim-title">💡 Smarter Simulation (V2)</div>
+      <div class="sim-body">
+        <p>Once the basic version works, upgrade your simulator to:</p>
+        <p>— <strong style="color:var(--text)">Poll your backend's REST API</strong> to check if a driver has been assigned a ride, then move toward the pickup coords.</p>
+        <p>— <strong style="color:var(--text)">Use real road paths</strong> via the free OSRM API to make drivers follow actual streets instead of drifting randomly.</p>
+        <p>— <strong style="color:var(--text)">Add a seed script</strong> (<code>seed.sql</code> or a Spring Boot <code>CommandLineRunner</code>) that auto-creates your 20 test drivers on startup so the demo is one-command ready.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROADMAP TAB -->
+  <div id="tab-roadmap" class="panel">
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:24px;font-family:'Space Mono',monospace;">// Click each phase to expand. Build in this order.</p>
+    <div class="roadmap">
+
+      <div class="phase">
+        <div class="phase-num" style="border-color:var(--accent);color:var(--accent)">01</div>
+        <div class="phase-content" style="border-color:var(--accent)">
+          <div class="phase-title" style="color:var(--accent)">Foundation — Docker + DB + Auth</div>
+          <div class="phase-sub">Est. 1–2 days · Get the skeleton running</div>
+          <div class="phase-tasks">
+            <span class="task-chip">docker-compose.yml (Postgres + Redis)</span>
+            <span class="task-chip">User model (RIDER / DRIVER roles)</span>
+            <span class="task-chip">JWT login & register endpoints</span>
+            <span class="task-chip">Seed 20 fake driver accounts via SQL</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num" style="border-color:var(--accent2);color:var(--accent2)">02</div>
+        <div class="phase-content">
+          <div class="phase-title">Ride Lifecycle — Request → Accept → Complete</div>
+          <div class="phase-sub">Est. 2–3 days · The core business logic</div>
+          <div class="phase-tasks">
+            <span class="task-chip">Ride entity + state machine (REQUESTED, ACCEPTED, IN_PROGRESS, DONE)</span>
+            <span class="task-chip">POST /rides — rider requests a ride</span>
+            <span class="task-chip">GET /rides/nearby — find closest driver</span>
+            <span class="task-chip">PUT /rides/{id}/accept</span>
+            <span class="task-chip">PUT /rides/{id}/complete</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num" style="border-color:var(--accent2);color:var(--accent2)">03</div>
+        <div class="phase-content">
+          <div class="phase-title">Real-Time Location via WebSocket</div>
+          <div class="phase-sub">Est. 2–3 days · The "wow" factor</div>
+          <div class="phase-tasks">
+            <span class="task-chip">Spring WebSocket + STOMP config</span>
+            <span class="task-chip">Driver sends location every 2s</span>
+            <span class="task-chip">Store in Redis (key: driver:{id}:location)</span>
+            <span class="task-chip">Rider subscribes to /topic/ride/{id}</span>
+            <span class="task-chip">Leaflet map shows moving marker</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num" style="border-color:var(--accent4);color:var(--accent4)">04</div>
+        <div class="phase-content">
+          <div class="phase-title">Driver Simulator Script</div>
+          <div class="phase-sub">Est. 1 day · This makes your demo impressive</div>
+          <div class="phase-tasks">
+            <span class="task-chip">Python WebSocket script for N drivers</span>
+            <span class="task-chip">Random drift movement</span>
+            <span class="task-chip">Poll API for assigned rides</span>
+            <span class="task-chip">Move toward pickup when assigned</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num" style="border-color:var(--muted);color:var(--muted)">05</div>
+        <div class="phase-content">
+          <div class="phase-title">Polish + Extras</div>
+          <div class="phase-sub">Make it demo-worthy</div>
+          <div class="phase-tasks">
+            <span class="task-chip">Fare calculation</span>
+            <span class="task-chip">Ride history page</span>
+            <span class="task-chip">Admin live map (all drivers)</span>
+            <span class="task-chip">Rating system</span>
+            <span class="task-chip">Deploy to Railway / Render</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const infoMap = {
+    'rider-app': {
+      title: '📱 Rider Web App',
+      body: 'A simple single-page app (or even Thymeleaf if you want to stay 100% Spring Boot). Key pages: Login, Request Ride (with map), Track Ride (live driver marker). Use Leaflet.js for the map — it\'s free and works great. Connect to your backend via REST for ride actions and <code>WebSocket/STOMP</code> for live location.'
+    },
+    'driver-sim': {
+      title: '🤖 Driver Simulator — Your Secret Weapon',
+      body: 'Instead of manually logging in as 20 drivers, you run a Python or Node.js script that pretends to be 20 drivers simultaneously. Each simulated driver opens a WebSocket connection to your backend, sends GPS coordinates every 2 seconds, and drifts around the map. When assigned a ride, it moves toward the pickup. See the "Driver Simulation" tab for full code.'
+    },
+    'admin-dash': {
+      title: '📊 Admin Dashboard',
+      body: 'A page that shows all drivers as moving markers on a map at once. When you\'re doing a demo, keep this open alongside the rider view — it shows the full system working with multiple drivers moving. Very impressive. Can be built in a few hours with Leaflet + a STOMP subscription to all driver location topics.'
+    },
+    'auth': {
+      title: '🔐 Auth Service',
+      body: 'Use Spring Security with JWT. On login, issue a token with the user\'s role (RIDER or DRIVER). The simulator will use pre-generated tokens for the fake driver accounts — no browser login needed. Store these tokens in your simulator script or config file.'
+    },
+    'ride': {
+      title: '🚗 Ride Service — The Heart of the App',
+      body: 'This manages the ride state machine: <code>REQUESTED → DRIVER_ASSIGNED → DRIVER_ARRIVING → IN_PROGRESS → COMPLETED</code>. The key endpoints are: POST <code>/api/rides</code> (rider requests), PUT <code>/api/rides/{id}/accept</code> (driver accepts), PUT <code>/api/rides/{id}/start</code> and <code>/complete</code>. Each state change should emit an event via WebSocket to notify the rider.'
+    },
+    'matching': {
+      title: '🎯 Matching Engine',
+      body: 'When a rider requests a ride, your backend needs to find the closest available driver. The simple approach: query Redis for all active driver locations, compute Haversine distance, pick the nearest one. Advanced approach: use PostGIS <code>ST_DWithin</code> with a geographic index — much faster at scale. For a hobby project, the Redis approach is fine.'
+    },
+    'location': {
+      title: '📍 Location Service — Real-Time Core',
+      body: 'Drivers (real or simulated) send their GPS every 2 seconds via WebSocket. Your Spring Boot backend receives these updates, stores them in Redis with a TTL (so offline drivers auto-expire), and forwards the update to any rider currently tracking that driver via STOMP topic <code>/topic/ride/{rideId}/location</code>.'
+    },
+    'notif': {
+      title: '🔔 Notification Service',
+      body: 'Keeps the rider informed of ride status changes without polling. When a driver accepts a ride, the rider\'s browser gets a push notification via WebSocket. Simpler alternative: Server-Sent Events (SSE) for one-way notifications, which is easier to set up than full WebSocket for status events.'
+    },
+    'postgres': {
+      title: '🐘 PostgreSQL + PostGIS',
+      body: 'Your main database for persistent data: users, rides, ratings, history. Install the PostGIS extension for geographic queries — it lets you do things like <code>WHERE ST_DWithin(location, ST_Point(lng, lat)::geography, 5000)</code> to find drivers within 5km. Run it locally via Docker: <code>docker run -e POSTGRES_PASSWORD=pass -p 5432:5432 postgis/postgis</code>'
+    },
+    'redis': {
+      title: '⚡ Redis — Live Driver State',
+      body: 'Store driver locations in Redis as a hash or geo set, not in PostgreSQL. GPS updates come every 2 seconds — writing to Postgres that frequently is wasteful. Redis stores: <code>driver:{id}:location</code> (lat, lng, timestamp) with a 30-second TTL. If a driver goes offline, their location auto-expires. Also use Redis for JWT blocklist and rate-limiting.'
+    },
+    'kafka': {
+      title: '📨 Kafka — Optional for Hobby Project',
+      body: 'Kafka is great for decoupling the location ingestion pipeline from processing, but it adds significant complexity. Skip it for V1. Add it later if you want to learn event streaming. For now, direct WebSocket → Redis → broadcast is clean enough for a demo.'
+    },
+    'maps': {
+      title: '🗺 Leaflet.js + OpenStreetMap',
+      body: 'Completely free, no API key, no billing. Leaflet is a lightweight JavaScript map library. You create markers for each driver and update their position as WebSocket events arrive — the marker slides to the new coordinates, just like Uber. Add this CDN to your HTML: <code>https://unpkg.com/leaflet@1.9.4/dist/leaflet.js</code>'
+    }
+  };
+
+  function showInfo(key) {
+    const drawer = document.getElementById('info-drawer');
+    const title = document.getElementById('info-title');
+    const body = document.getElementById('info-body');
+    const info = infoMap[key];
+    if (!info) return;
+    title.textContent = info.title;
+    body.innerHTML = info.body;
+    drawer.classList.add('open');
+    drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('active');
+    // close drawer when switching
+    document.getElementById('info-drawer').classList.remove('open');
+  }
+</script>
+</body>
+</html>

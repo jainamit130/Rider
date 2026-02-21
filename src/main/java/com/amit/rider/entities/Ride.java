@@ -13,7 +13,17 @@ public class Ride {
     private Long passengerId;
     private Long driverId;
     private LocalDateTime creationTimeStamp;
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "latitude", column = @Column(name = "start_latitude")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "start_longitude"))
+    })
     private Location startLocation;
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "latitude", column = @Column(name = "end_latitude")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "end_longitude"))
+    })
     private Location endLocation;
     private RideStatus rideStatus;
 }
