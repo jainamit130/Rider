@@ -16,5 +16,7 @@ public class RiderController {
     public ResponseEntity<String> rideRequest(Location startLocation, Location endLocation) {
         return new ResponseEntity<String>("Requested....Searching!!!", HttpStatus.OK);
     }
+
+
     
 }
