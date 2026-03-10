@@ -1,6 +1,6 @@
 package com.amit.rider.controller;
 
-import com.amit.rider.entities.Location;
+import com.amit.rider.model.Location;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,5 @@ public class RiderController {
     public ResponseEntity<String> rideRequest(Location startLocation, Location endLocation) {
         return new ResponseEntity<String>("Requested....Searching!!!", HttpStatus.OK);
     }
-
-
     
 }

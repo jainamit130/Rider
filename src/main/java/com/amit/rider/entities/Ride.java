@@ -1,5 +1,6 @@
 package com.amit.rider.entities;
 
+import com.amit.rider.model.Location;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
