@@ -55,6 +55,8 @@ public class LocationService {
 
     private Point createPoint(double latitude, double longitude) {
         // Create a Point geometry with SRID 4326 (WGS84)
-        return new GeometryFactory().createPoint(new Coordinate(longitude, latitude)).setSRID(4326);
+        Point point = new GeometryFactory().createPoint(new Coordinate(longitude, latitude));
+        point.setSRID(4326);
+        return point;
     }
 }
