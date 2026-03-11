@@ -3,6 +3,8 @@ package com.amit.rider.entities;
 import com.amit.rider.model.Location;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
 import java.util.List;
 
 @Data
@@ -30,7 +32,7 @@ public class Driver {
     private List<Location> locations;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "current_location_id")
+    @JoinColumn(name = "current_location_id", nullable = true)
     private Location currentLocation;
 
     @Column(name = "created_at")

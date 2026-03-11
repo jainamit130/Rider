@@ -1,5 +1,6 @@
 package com.amit.rider.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -27,15 +28,16 @@ public class DriverController {
         return new ResponseEntity<>("Ride "+rideId+" rejected!", HttpStatus.OK);
     }
 
-    @MessageMapping("/location/update/{driverId}")
-    @SendTo("/topic/location")
-    public ResponseEntity<String> updateLocation(@PathVariable Long driverId, LocationUpdateDTO locationUpdate) {
+//    @MessageMapping("/location/update/{driverId}")
+//    @SendTo("/topic/location")
+    @PostMapping("/location/update/{driverId}")
+    public String updateLocation(@PathVariable Long driverId, @RequestBody LocationUpdateDTO locationUpdate) {
         // Convert DTO to Location entity
         Location location = new Location();
         location.setLatitude(locationUpdate.getLatitude());
         location.setLongitude(locationUpdate.getLongitude());
 
         locationService.saveLocation(driverId, location);
-        return new ResponseEntity<>("Driver location updated!", HttpStatus.OK);
+        return "Driver location updated!";
     }
 }
