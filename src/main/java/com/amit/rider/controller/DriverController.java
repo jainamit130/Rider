@@ -28,7 +28,7 @@ public class DriverController {
         return new ResponseEntity<>("Ride "+rideId+" rejected!", HttpStatus.OK);
     }
 
-//    @MessageMapping("/location/update/{driverId}")
+    //    @MessageMapping("/location/update/{driverId}")
 //    @SendTo("/topic/location")
     @PostMapping("/location/update/{driverId}")
     public String updateLocation(@PathVariable Long driverId, @RequestBody LocationUpdateDTO locationUpdate) {
@@ -40,4 +40,5 @@ public class DriverController {
         locationService.saveLocation(driverId, location);
         return "Driver location updated!";
     }
+
 }

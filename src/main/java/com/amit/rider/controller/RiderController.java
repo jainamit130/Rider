@@ -33,4 +33,5 @@ public class RiderController {
         List<Driver> nearbyDrivers = driverService.findNearbyDrivers(latitude, longitude, radiusKm);
         return ResponseEntity.ok(nearbyDrivers);
     }
+
 }
